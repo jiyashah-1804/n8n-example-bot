@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatbot UI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+  <div class="bg-white w-full max-w-lg rounded-lg shadow-lg p-6 flex flex-col h-[80vh]">
+    <!-- Chat Header -->
+    <h1 class="text-2xl font-bold text-gray-800 mb-4">Chatbot</h1>
+    
+    <!-- Chat Window -->
+    <div id="chatWindow" class="flex-1 overflow-y-auto p-4 bg-gray-50 rounded-lg mb-4">
+      <div id="chatMessages" class="space-y-4">
+        <!-- Messages will be appended here -->
+      </div>
+    </div>
+    
+    <!-- Input Form -->
+    <div class="flex gap-2">
+      <input 
+        type="text" 
+        id="userInput" 
+        placeholder="Type your question..." 
+        class="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+      <button 
+        id="sendButton" 
+        class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+      >
+        Send
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const webhookUrl = 'YOUR_N8N_WEBHOOK_URL'; // Replace with your n8n webhook URL
+    const sessionId = 'user_' + Math.random().toString(36).substr(2, 9); // Unique session ID
+
+    const chatMessages = document.getElementById('chatMessages');
+    const userInput = document.getElementById('userInput');
+    const sendButton = document.getElementById('sendButton');
+
+    // Function to append a message to the chat window
+    function appendMessage(content, isUser = false) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = isUser 
+        ? 'bg-blue-100 p-3 rounded-lg max-w-[80%] ml-auto' 
+        : 'bg-gray-200 p-3 rounded-lg max-w-[80%]';
+      messageDiv.textContent = content;
+      chatMessages.appendChild(messageDiv);
+      chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll to bottom
+    }
+
+    // Handle sending the query
+    async function sendQuery() {
+      const question = userInput.value.trim();
+      if (!question) return;
+
+      // Append user message
+      appendMessage(question, true);
+      userInput.value = ''; // Clear input
+
+      try {
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question, sessionId })
+        });
+        const data = await response.json();
+        const answer = data.answer || 'Sorry, something went wrong.';
+        appendMessage(answer);
+      } catch (error) {
+        appendMessage('Error: Could not reach the server.');
+        console.error(error);
+      }
+    }
+
+    // Event listeners
+    sendButton.addEventListener('click', sendQuery);
+    userInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendQuery();
+    });
+
+    // Initial welcome message
+    appendMessage('Hello! Ask me anything about the files.');
+  </script>
+</body>
+</html>
